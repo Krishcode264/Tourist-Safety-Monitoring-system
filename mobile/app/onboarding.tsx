@@ -4,11 +4,10 @@ import { useRouter } from 'expo-router';
 import { Shield, Clock, MapPin, CheckCircle2, ChevronRight, ChevronLeft, User, Mail, Lock, Phone, Globe, Eye, EyeOff } from 'lucide-react-native';
 import { useSetAtom } from 'jotai';
 import { tokenAtom, userAtom } from '../atoms/auth';
-import Constants from 'expo-constants';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BACKEND_URL } from '../constants/Config';
 
-const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 export default function OnboardingScreen() {
     let router: any = null;

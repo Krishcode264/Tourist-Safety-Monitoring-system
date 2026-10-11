@@ -3,12 +3,11 @@ import { View, Text, FlatList, TouchableOpacity, ActivityIndicator } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MessageSquare, AlertCircle, Clock, ChevronRight } from 'lucide-react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import Constants from 'expo-constants';
 import axios from 'axios';
 import { useAtom } from 'jotai';
 import { userAtom } from '../../atoms/auth';
+import { BACKEND_URL } from '../../constants/Config';
 
-const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 export default function IncidentsScreen() {
     const router = useRouter();

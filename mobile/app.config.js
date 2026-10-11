@@ -1,6 +1,8 @@
 export default ({ config }) => ({
   ...config,
   extra: {
-    backendUrl: 'http://192.168.29.121:8000',
+    ...config.extra,
+    backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || 'https://tourist-safety-monitoring-system.onrender.com',
   },
 });
+

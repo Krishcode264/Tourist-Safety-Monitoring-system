@@ -12,7 +12,11 @@ export default function HomeScreen() {
       <ScrollView className="flex-1">
         <View className="p-6">
           {/* Safety Score Card */}
-          <View className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6">
+          <TouchableOpacity 
+            onPress={() => router.push('/safety')}
+            activeOpacity={0.8}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6"
+          >
             <View className="flex-row justify-between items-center mb-4">
               <Text className="text-slate-500 font-medium">Safety Score</Text>
               <Shield size={20} color="#10b981" />
@@ -22,10 +26,14 @@ export default function HomeScreen() {
               <Text className="text-slate-400 mb-2">/ 10</Text>
             </View>
             <Text className="text-emerald-600 font-semibold mt-2">Optimal Safety Status</Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Current Zone Risk */}
-          <View className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 mb-6 flex-row items-center gap-4">
+          <TouchableOpacity 
+            onPress={() => router.push('/map')}
+            activeOpacity={0.8}
+            className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 mb-6 flex-row items-center gap-4"
+          >
             <View className="w-12 h-12 bg-amber-100 rounded-2xl items-center justify-center">
               <AlertTriangle size={24} color="#f59e0b" />
             </View>
@@ -33,7 +41,7 @@ export default function HomeScreen() {
               <Text className="text-slate-400 text-xs uppercase font-bold tracking-tight">Current Zone Risk</Text>
               <Text className="text-slate-900 font-bold text-lg">Moderate - Calangute</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Trip Meta */}
           <View className="flex-row gap-4 mb-8">
@@ -57,13 +65,18 @@ export default function HomeScreen() {
           <Text className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-4 ml-1">Live Actions</Text>
           <PanicButton isInline />
 
-          <TouchableOpacity className="bg-emerald-500 p-5 rounded-3xl flex-row items-center justify-center gap-3 mb-4 shadow-lg shadow-emerald-200">
-
+          <TouchableOpacity 
+            onPress={() => router.push('/profile')}
+            className="bg-emerald-500 p-5 rounded-3xl flex-row items-center justify-center gap-3 mb-4 shadow-lg shadow-emerald-200"
+          >
             <Shield size={20} color="white" />
             <Text className="text-white font-bold text-lg">Verify Digital ID</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity className="bg-slate-900 p-5 rounded-3xl flex-row items-center justify-center gap-3 shadow-lg shadow-slate-200">
+          <TouchableOpacity 
+            onPress={() => router.push('/map')}
+            className="bg-slate-900 p-5 rounded-3xl flex-row items-center justify-center gap-3 shadow-lg shadow-slate-200"
+          >
             <MapPin size={20} color="white" />
             <Text className="text-white font-bold text-lg">Explore Safety Map</Text>
           </TouchableOpacity>

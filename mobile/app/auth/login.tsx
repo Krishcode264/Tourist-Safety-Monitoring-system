@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
-import Constants from 'expo-constants';
 import axios from 'axios';
 import { useSetAtom } from 'jotai';
 import { tokenAtom, userAtom } from '../../atoms/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BACKEND_URL } from '../../constants/Config';
 
-const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
 
 export default function LoginScreen() {
     const router = useRouter();

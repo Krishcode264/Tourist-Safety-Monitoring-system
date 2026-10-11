@@ -188,6 +188,13 @@ export class SocketService {
                 console.error('Failed to save or broadcast chat message:', error);
             }
         });
+
+        // Typing Indicator in Chat
+        socket.on('chat:typing', (data: { incidentId: string; isTyping: boolean; senderRole: string; senderName?: string; senderId?: string }) => {
+            if (data?.incidentId) {
+                socket.to(`incident:${data.incidentId}`).emit('chat:typing', data);
+            }
+        });
     }
 
     // --- Emitters matching Data Contract Section 8 ---

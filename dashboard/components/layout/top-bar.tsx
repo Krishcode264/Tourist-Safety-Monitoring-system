@@ -16,7 +16,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LiveNotifications } from "./live-notifications"
 import { useAuth } from "@/components/providers/auth-provider"
 
-export function TopBar() {
+interface TopBarProps {
+  userRole?: string
+}
+
+export function TopBar({ userRole }: TopBarProps = {}) {
   const { user, logout } = useAuth()
 
   return (

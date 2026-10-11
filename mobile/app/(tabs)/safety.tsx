@@ -9,8 +9,8 @@ import { io } from 'socket.io-client';
 import { useAtom } from 'jotai';
 import { userAtom } from '../../atoms/auth';
 
-// Constants for Safety Monitoring
-const BACKEND_URL = Constants.expoConfig?.extra?.backendUrl || 'http://192.168.29.121:8000';
+import { BACKEND_URL } from '../../constants/Config';
+
 
 // Helper to calculate distance in KM
 const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {

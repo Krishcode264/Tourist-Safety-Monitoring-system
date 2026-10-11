@@ -1,7 +1,11 @@
 import { atom } from 'jotai';
+import { atomWithStorage, createJSONStorage } from 'jotai/utils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const tokenAtom = atom<string | null>(null);
-export const userAtom = atom<any | null>(null);
+const storage = createJSONStorage<any>(() => AsyncStorage);
+
+export const tokenAtom = atomWithStorage<string | null>('auth_token', null, storage);
+export const userAtom = atomWithStorage<any | null>('auth_user', null, storage);
 
 export const signupFormAtom = atom({
     fullName: '',

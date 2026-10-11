@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Animated } from 'react-native';
-import { AlertTriangle, X, ShieldCheck } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { AlertTriangle, ShieldCheck } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAtomValue } from 'jotai';
+import { userAtom } from '@/atoms/auth';
+import { BACKEND_URL } from '@/constants/Config';
+import * as Location from 'expo-location';
+import axios from 'axios';
 
 interface PanicButtonProps {
     isInline?: boolean;
 }
 
 export function PanicButton({ isInline = false }: PanicButtonProps) {
-
     const [active, setActive] = useState(false);
     const insets = useSafeAreaInsets();
-    const [countdown, setCountdown] = useState(5);
     const [isTriggered, setIsTriggered] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const user = useAtomValue(userAtom);
 
     const handlePress = () => {
         setActive(true);
-        setCountdown(5);
-        // Start countdown logic here if needed
     };
 
     const cancelPanic = () => {
@@ -25,9 +28,36 @@ export function PanicButton({ isInline = false }: PanicButtonProps) {
         setIsTriggered(false);
     };
 
-    const triggerSOS = () => {
-        setIsTriggered(true);
-        // Call backend API / Socket signal here
+    const triggerSOS = async () => {
+        setIsSubmitting(true);
+        try {
+            let lat = 19.0760; // Default fallback to Mumbai if GPS disabled
+            let lng = 72.8777;
+
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+                const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                lat = loc.coords.latitude;
+                lng = loc.coords.longitude;
+            }
+
+            const touristId = user?.id || 'tourist-demo-001';
+            await axios.post(`${BACKEND_URL}/api/incidents`, {
+                type: 'HARASSMENT',
+                severity: 'CRITICAL',
+                description: `EMERGENCY SOS ALERT triggered by ${user?.fullName || 'Tourist'}`,
+                latitude: lat,
+                longitude: lng,
+                touristId,
+                status: 'OPEN'
+            });
+            setIsTriggered(true);
+        } catch (error) {
+            console.error('Failed to dispatch SOS alert:', error);
+            setIsTriggered(true);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -36,79 +66,254 @@ export function PanicButton({ isInline = false }: PanicButtonProps) {
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={handlePress}
-                    className="bg-red-600 p-5 rounded-3xl flex-row items-center justify-center gap-3 mb-4 shadow-lg shadow-red-200"
+                    style={styles.inlineButton}
                 >
                     <AlertTriangle size={20} color="white" />
-                    <Text className="text-white font-bold text-lg">Trigger SOS Emergency</Text>
+                    <Text style={styles.inlineButtonText}>Trigger SOS Emergency</Text>
                 </TouchableOpacity>
             ) : (
                 <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={handlePress}
-                    className="absolute w-16 h-16 bg-red-600 rounded-full items-center justify-center shadow-2xl shadow-red-400 z-50"
-                    style={{ bottom: insets.bottom + 80, right: 24 }}
+                    style={[
+                        styles.floatingButton,
+                        { bottom: insets.bottom + 80 }
+                    ]}
                 >
                     <AlertTriangle size={32} color="white" />
                 </TouchableOpacity>
             )}
 
-
-            <Modal transparent visible={active} animationType="fade">
-                <View className="flex-1 bg-red-900/95 justify-center items-center p-8">
-                    <View className="items-center">
+            {active && (
+                <View style={styles.overlay}>
+                    <View style={styles.container}>
                         {!isTriggered ? (
                             <>
-                                <View className="w-48 h-48 rounded-full border-4 border-white/20 items-center justify-center mb-8">
-                                    <Text className="text-white text-7xl font-bold">SOS</Text>
+                                <View style={styles.sosCircle}>
+                                    <Text style={styles.sosText}>SOS</Text>
                                 </View>
-                                <Text className="text-white text-3xl font-bold text-center mb-4">Are you in danger?</Text>
-                                <Text className="text-red-100 text-center mb-12 text-lg">
+                                <Text style={styles.titleText}>Are you in danger?</Text>
+                                <Text style={styles.subtitleText}>
                                     Pressing 'Trigger SOS' will notify local authorities and emergency contacts immediately.
                                 </Text>
 
                                 <TouchableOpacity
                                     onPress={triggerSOS}
-                                    className="bg-white w-full py-5 rounded-3xl mb-4"
+                                    disabled={isSubmitting}
+                                    style={styles.triggerButton}
                                 >
-                                    <Text className="text-red-600 text-center font-bold text-xl">TRIGGER SOS</Text>
+                                    {isSubmitting ? (
+                                        <ActivityIndicator color="#dc2626" />
+                                    ) : (
+                                        <Text style={styles.triggerButtonText}>TRIGGER SOS</Text>
+                                    )}
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
                                     onPress={cancelPanic}
-                                    className="w-full py-4"
+                                    disabled={isSubmitting}
+                                    style={styles.cancelButton}
                                 >
-                                    <Text className="text-white/60 text-center font-medium">I'm Safe, Cancel</Text>
+                                    <Text style={styles.cancelButtonText}>I'm Safe, Cancel</Text>
                                 </TouchableOpacity>
                             </>
                         ) : (
                             <>
-                                <View className="w-48 h-48 bg-white rounded-full items-center justify-center mb-8 shadow-2xl shadow-white/50">
+                                <View style={styles.successCircle}>
                                     <ShieldCheck size={80} color="#dc2626" />
                                 </View>
-                                <Text className="text-white text-4xl font-bold text-center mb-4">Help is Coming</Text>
-                                <Text className="text-red-100 text-center mb-12 text-xl italic">
+                                <Text style={styles.titleText}>Help is Coming</Text>
+                                <Text style={styles.subtitleTextItalic}>
                                     Your live location is being shared with the nearest response unit.
                                 </Text>
 
-                                <View className="bg-red-800/50 p-6 rounded-3xl border border-red-700/50 w-full mb-8">
-                                    <View className="flex-row items-center gap-3 mb-2">
-                                        <View className="w-2 h-2 rounded-full bg-blue-400" />
-                                        <Text className="text-white font-bold">Calangute Police Unit B</Text>
+                                <View style={styles.policeCard}>
+                                    <View style={styles.policeHeader}>
+                                        <View style={styles.blueDot} />
+                                        <Text style={styles.policeTitle}>Calangute Police Unit B</Text>
                                     </View>
-                                    <Text className="text-red-200 text-sm">Estimated Response: 4-6 minutes</Text>
+                                    <Text style={styles.policeEta}>Estimated Response: 4-6 minutes</Text>
                                 </View>
 
                                 <TouchableOpacity
                                     onPress={cancelPanic}
-                                    className="border border-white/20 w-full py-4 rounded-3xl"
+                                    style={styles.deescalateButton}
                                 >
-                                    <Text className="text-white/60 text-center font-medium">De-escalate Alert</Text>
+                                    <Text style={styles.deescalateButtonText}>De-escalate Alert</Text>
                                 </TouchableOpacity>
                             </>
                         )}
                     </View>
                 </View>
-            </Modal>
+            )}
         </>
     );
 }
+
+const styles = StyleSheet.create({
+    inlineButton: {
+        backgroundColor: '#dc2626',
+        padding: 20,
+        borderRadius: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        marginBottom: 16,
+        shadowColor: '#fca5a5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    inlineButtonText: {
+        color: '#ffffff',
+        fontWeight: '700',
+        fontSize: 18,
+    },
+    floatingButton: {
+        position: 'absolute',
+        width: 64,
+        height: 64,
+        backgroundColor: '#dc2626',
+        borderRadius: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        right: 24,
+        zIndex: 50,
+        elevation: 8,
+        shadowColor: '#f87171',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(127, 29, 29, 0.96)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 32,
+        zIndex: 99999,
+        elevation: 99999,
+    },
+    container: {
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: 380,
+    },
+    sosCircle: {
+        width: 192,
+        height: 192,
+        borderRadius: 96,
+        borderWidth: 4,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 32,
+    },
+    sosText: {
+        color: '#ffffff',
+        fontSize: 64,
+        fontWeight: 'bold',
+    },
+    titleText: {
+        color: '#ffffff',
+        fontSize: 28,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    subtitleText: {
+        color: '#fee2e2',
+        textAlign: 'center',
+        marginBottom: 48,
+        fontSize: 16,
+    },
+    subtitleTextItalic: {
+        color: '#fee2e2',
+        textAlign: 'center',
+        marginBottom: 32,
+        fontSize: 18,
+        fontStyle: 'italic',
+    },
+    triggerButton: {
+        backgroundColor: '#ffffff',
+        width: '100%',
+        paddingVertical: 20,
+        borderRadius: 24,
+        marginBottom: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    triggerButtonText: {
+        color: '#dc2626',
+        textAlign: 'center',
+        fontWeight: 'bold',
+        fontSize: 20,
+    },
+    cancelButton: {
+        width: '100%',
+        paddingVertical: 16,
+    },
+    cancelButtonText: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        textAlign: 'center',
+        fontWeight: '500',
+    },
+    successCircle: {
+        width: 192,
+        height: 192,
+        backgroundColor: '#ffffff',
+        borderRadius: 96,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 32,
+        shadowColor: '#ffffff',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    policeCard: {
+        backgroundColor: 'rgba(153, 27, 27, 0.5)',
+        padding: 24,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(185, 28, 28, 0.5)',
+        width: '100%',
+        marginBottom: 32,
+    },
+    policeHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 8,
+    },
+    blueDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#60a5fa',
+    },
+    policeTitle: {
+        color: '#ffffff',
+        fontWeight: 'bold',
+    },
+    policeEta: {
+        color: '#fca5a5',
+        fontSize: 14,
+    },
+    deescalateButton: {
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        width: '100%',
+        paddingVertical: 16,
+        borderRadius: 24,
+    },
+    deescalateButtonText: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        textAlign: 'center',
+        fontWeight: '500',
+    },
+});

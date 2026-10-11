@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx kill-port 8000 && nodemon --ext ts --exec ts-node src/app.ts",
+    "dev": "nodemon --ext ts --exec ts-node src/app.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/app.js",
     "postinstall": "prisma generate"
