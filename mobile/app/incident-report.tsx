@@ -43,6 +43,9 @@ export default function IncidentReportScreen() {
         { id: '1', role: 'system', text: 'You are connected to Tourism Safety Support.', time: 'Now' },
     ]);
 
+    const [isOfficerTyping, setIsOfficerTyping] = useState(false);
+    const typingTimeoutRef = useRef<any>(null);
+    const remoteTypingTimeoutRef = useRef<any>(null);
     const socketRef = useRef<Socket | null>(null);
     const router = useRouter();
 
@@ -72,7 +75,20 @@ export default function IncidentReportScreen() {
                 socketRef.current?.emit('chat:join', caseId);
             });
 
+            socketRef.current.on('chat:typing', (data: { incidentId: string; isTyping: boolean; senderRole: string }) => {
+                if (data?.senderRole !== 'TOURIST') {
+                    setIsOfficerTyping(!!data?.isTyping);
+                    if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current);
+                    if (data?.isTyping) {
+                        remoteTypingTimeoutRef.current = setTimeout(() => {
+                            setIsOfficerTyping(false);
+                        }, 3500);
+                    }
+                }
+            });
+
             socketRef.current.on('chat:receive', (msg) => {
+                setIsOfficerTyping(false);
                 setChat(prev => {
                     return [...prev, {
                         id: msg.id,
@@ -84,6 +100,8 @@ export default function IncidentReportScreen() {
             });
 
             return () => {
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                if (remoteTypingTimeoutRef.current) clearTimeout(remoteTypingTimeoutRef.current);
                 socketRef.current?.disconnect();
             };
         }
@@ -132,12 +150,42 @@ export default function IncidentReportScreen() {
         }
     };
 
+    const handleTextChange = (text: string) => {
+        setMessage(text);
+        if (!caseId || !socketRef.current) return;
+
+        socketRef.current.emit('chat:typing', {
+            incidentId: caseId,
+            isTyping: text.trim().length > 0,
+            senderRole: 'TOURIST',
+            senderName: user?.fullName || 'Tourist'
+        });
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        if (text.trim().length > 0) {
+            typingTimeoutRef.current = setTimeout(() => {
+                socketRef.current?.emit('chat:typing', {
+                    incidentId: caseId,
+                    isTyping: false,
+                    senderRole: 'TOURIST'
+                });
+            }, 2500);
+        }
+    };
+
     const sendMessage = () => {
-        if (!message) return;
-        
+        if (!message.trim()) return;
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        socketRef.current?.emit('chat:typing', {
+            incidentId: caseId,
+            isTyping: false,
+            senderRole: 'TOURIST'
+        });
+
         socketRef.current?.emit('chat:send', {
             incidentId: caseId,
-            content: message,
+            content: message.trim(),
             senderRole: 'TOURIST',
             senderId: user?.id
         });
@@ -270,6 +318,13 @@ export default function IncidentReportScreen() {
                     ))}
                 </ScrollView>
 
+                {isOfficerTyping && (
+                    <View className="px-4 py-2 flex-row items-center gap-2 bg-slate-50 border-t border-slate-100">
+                        <View className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <Text className="text-xs text-slate-500 italic">Dispatch officer is typing...</Text>
+                    </View>
+                )}
+
                 <View className="p-4 border-t border-slate-100 flex-row items-center gap-3 bg-white">
                     <TouchableOpacity className="p-2 bg-slate-50 rounded-full border border-slate-100">
                         <ImageIcon size={20} color="#64748b" />
@@ -279,7 +334,7 @@ export default function IncidentReportScreen() {
                             placeholder="Type a message..."
                             className="flex-1 py-2 text-slate-800 max-h-24"
                             value={message}
-                            onChangeText={setMessage}
+                            onChangeText={handleTextChange}
                             multiline
                         />
                         <TouchableOpacity onPress={sendMessage}>
