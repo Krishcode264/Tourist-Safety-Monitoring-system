@@ -1,108 +1,127 @@
 "use client"
 
 import { useAnalytics } from "../hooks/use-analytics"
-import { Card } from "@/components/ui/card"
-import { TrendingUp, Calendar, Download, Loader2, AlertCircle } from "lucide-react"
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
+import { TrendingUp, TrendingDown, Calendar, Download, Loader2, AlertCircle } from "lucide-react"
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
   CartesianGrid,
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
 } from "recharts"
 
-const CHART_COLORS = [
-  '#00E5FF', // Vibrant Cyan
-  '#7C4DFF', // Vibrant Purple
-  '#FF5252', // Vibrant Red
-  '#FFD740', // Vibrant Amber
-  '#69F0AE', // Vibrant Green
-];
-
-const GRADIENT_COLORS = {
-  start: 'hsl(var(--primary))',
-  end: 'rgba(var(--primary-rgb), 0)'
-};
+/* Restrained, accessible series palette tied to CSS vars */
+const PIE_COLORS = ["#2563EB", "#0F766E", "#B45309", "#7C3AED", "#B91C1C"]
 
 export function AnalyticsView() {
-  const { data: analyticsData, isLoading, error } = useAnalytics();
+  const { data: analyticsData, isLoading, error } = useAnalytics()
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-7 h-7 animate-spin text-primary" />
       </div>
-    );
+    )
   }
 
   if (error) {
     return (
-      <div className="p-6 text-destructive flex items-center gap-2">
-        <AlertCircle className="w-5 h-5" />
+      <div className="m-6 p-5 flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive text-sm">
+        <AlertCircle className="w-5 h-5 shrink-0" strokeWidth={1.5} />
         Failed to load analytics data.
       </div>
-    );
+    )
   }
 
   const kpiItems = [
-    { label: "Total Incidents", value: analyticsData?.kpis?.totalIncidents?.value ?? 0, change: `+${analyticsData?.kpis?.totalIncidents?.delta}%`, trend: analyticsData?.kpis?.totalIncidents?.trend },
-    { label: "Resolved Rate", value: `${analyticsData?.kpis?.resolutionRate?.value}%`, change: `${analyticsData?.kpis?.resolutionRate?.delta}%`, trend: analyticsData?.kpis?.resolutionRate?.trend },
-    { label: "Avg Response Time", value: analyticsData?.kpis?.avgResponseTime?.value ?? "N/A", change: `${analyticsData?.kpis?.avgResponseTime?.delta}`, trend: analyticsData?.kpis?.avgResponseTime?.trend },
-    { label: "Tourist Safety Score", value: `${analyticsData?.kpis?.safetyScore?.value}/10`, change: `+${analyticsData?.kpis?.safetyScore?.delta}`, trend: analyticsData?.kpis?.safetyScore?.trend },
+    {
+      label: "Total Incidents",
+      value: analyticsData?.kpis?.totalIncidents?.value ?? 0,
+      change: `+${analyticsData?.kpis?.totalIncidents?.delta ?? 0}%`,
+      up: analyticsData?.kpis?.totalIncidents?.trend === "up",
+    },
+    {
+      label: "Resolution Rate",
+      value: `${analyticsData?.kpis?.resolutionRate?.value ?? "--"}%`,
+      change: `${analyticsData?.kpis?.resolutionRate?.delta ?? 0}%`,
+      up: analyticsData?.kpis?.resolutionRate?.trend === "up",
+    },
+    {
+      label: "Avg Response Time",
+      value: analyticsData?.kpis?.avgResponseTime?.value ?? "N/A",
+      change: `${analyticsData?.kpis?.avgResponseTime?.delta ?? 0}`,
+      up: analyticsData?.kpis?.avgResponseTime?.trend !== "up",
+    },
+    {
+      label: "Safety Score",
+      value: `${analyticsData?.kpis?.safetyScore?.value ?? "--"}/10`,
+      change: `+${analyticsData?.kpis?.safetyScore?.delta ?? 0}`,
+      up: analyticsData?.kpis?.safetyScore?.trend === "up",
+    },
   ]
 
-  const incidentsByTypeData = analyticsData?.charts?.incidentsByType || [];
-  const weeklyTrendData = analyticsData?.charts?.weeklyTrend || [];
+  const incidentsByTypeData = analyticsData?.charts?.incidentsByType || []
+  const weeklyTrendData = analyticsData?.charts?.weeklyTrend || []
+
+  const tooltipStyle = {
+    backgroundColor: "var(--card)",
+    border: "1px solid var(--border)",
+    borderRadius: "10px",
+    fontSize: "13px",
+    color: "var(--foreground)",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
+  }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 max-w-screen-xl">
+      {/* ── Toolbar ── */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Analytics & Insights</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Real-time performance metrics and regional safety trends</p>
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-lg bg-muted border border-border">
+            <Calendar className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+          </div>
+          <select className="text-sm bg-transparent border-none outline-none text-muted-foreground font-medium cursor-pointer">
+            <option>Last 7 Days</option>
+            <option>Last 30 Days</option>
+            <option>Last 90 Days</option>
+            <option>This Year</option>
+          </select>
         </div>
-        <button className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2 active:scale-95">
+        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
           <Download className="w-4 h-4" />
-          Export Report
+          Export
         </button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiItems.map((item, idx) => (
-          <Card key={idx} className="bg-card/50 backdrop-blur-sm border-border p-6 hover:border-primary/50 transition-colors group">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{item.label}</p>
-                <p className="text-3xl font-bold text-foreground group-hover:text-primary transition-colors">{item.value}</p>
-                <div className="flex items-center gap-1.5 mt-2">
-                  <span className={`text-xs font-semibold ${item.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                    {item.change}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">vs last month</span>
-                </div>
-              </div>
-              <div className={`p-2 rounded-lg ${item.trend === 'up' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                <TrendingUp className={`w-5 h-5 ${item.trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
-              </div>
+      {/* ── KPI strip ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {kpiItems.map((item, idx) => {
+          const TrendIcon = item.up ? TrendingUp : TrendingDown
+          return (
+            <div key={idx} className="bg-card border border-border rounded-xl p-5">
+              <p className="section-label">{item.label}</p>
+              <p className="mt-2 text-[28px] font-bold text-foreground leading-none tabular">{item.value}</p>
+              <p className={`mt-2 text-[12px] flex items-center gap-1 ${item.up ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                <TrendIcon className="w-3.5 h-3.5 shrink-0" strokeWidth={2.5} />
+                {item.change} vs last month
+              </p>
             </div>
-          </Card>
-        ))}
+          )
+        })}
       </div>
 
-      {/* Charts */}
+      {/* ── Charts ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card/50 backdrop-blur-sm border-border p-6 flex flex-col h-[400px]">
-          <h2 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-            <div className="w-1.5 h-6 bg-primary rounded-full" />
-            Incidents by Type
-          </h2>
+        {/* Donut — Incidents by Type */}
+        <div className="bg-card border border-border rounded-xl p-6 flex flex-col h-[380px]">
+          <h2 className="text-[15px] font-semibold text-foreground mb-1">Incidents by Type</h2>
+          <p className="text-[12px] text-muted-foreground mb-5">Distribution across incident categories</p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -110,115 +129,79 @@ export function AnalyticsView() {
                   data={incidentsByTypeData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
+                  innerRadius={62}
                   outerRadius={100}
-                  paddingAngle={5}
+                  paddingAngle={4}
                   dataKey="count"
                   nameKey="type"
                   animationBegin={0}
-                  animationDuration={1500}
+                  animationDuration={900}
                 >
-                  {incidentsByTypeData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} stroke="rgba(0,0,0,0)" />
+                  {incidentsByTypeData.map((_: any, index: number) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      stroke="transparent"
+                    />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
-                  }}
-                  itemStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
-                />
-                <Legend 
-                  layout="vertical" 
-                  align="right" 
-                  verticalAlign="middle" 
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend
+                  layout="vertical"
+                  align="right"
+                  verticalAlign="middle"
                   iconType="circle"
-                  formatter={(value) => <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '12px' }}>{value}</span>}
+                  formatter={(value) => (
+                    <span style={{ color: "var(--foreground)", fontSize: "12px" }}>{value}</span>
+                  )}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </Card>
+        </div>
 
-        <Card className="bg-card/50 backdrop-blur-sm border-border p-6 flex flex-col h-[400px]">
-          <h2 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-             <div className="w-1.5 h-6 bg-accent rounded-full" />
-            Incident Trend (Weekly)
-          </h2>
+        {/* Area — Weekly trend */}
+        <div className="bg-card border border-border rounded-xl p-6 flex flex-col h-[380px]">
+          <h2 className="text-[15px] font-semibold text-foreground mb-1">Weekly Incident Trend</h2>
+          <p className="text-[12px] text-muted-foreground mb-5">Number of incidents reported per day</p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weeklyTrendData}>
+              <AreaChart data={weeklyTrendData} margin={{ left: -16, right: 8 }}>
                 <defs>
-                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00E5FF" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#00E5FF" stopOpacity={0}/>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 12 }}
-                  dy={10}
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border)" />
+                <XAxis
+                  dataKey="day"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                  dy={8}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 12 }}
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+                  allowDecimals={false}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
-                  }}
-                  itemStyle={{ color: 'rgba(255, 255, 255, 0.9)' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="#00E5FF" 
-                  strokeWidth={4}
-                  fillOpacity={1} 
-                  fill="url(#colorCount)" 
-                  animationDuration={2000}
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#2563EB"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#areaGrad)"
+                  animationDuration={900}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </Card>
-      </div>
-
-      {/* Date Range Selector */}
-      <Card className="bg-card/50 backdrop-blur-sm border-border p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-secondary rounded-lg">
-              <Calendar className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-foreground">Report Period</h2>
-              <p className="text-xs text-muted-foreground">Adjust the date range for all metrics</p>
-            </div>
-          </div>
-          <div className="relative group">
-            <select className="pl-4 pr-10 py-2.5 rounded-xl bg-secondary border border-border text-foreground text-sm font-medium focus:ring-2 focus:ring-primary outline-none appearance-none transition-all hover:border-primary/50">
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
-              <option>Last 90 Days</option>
-              <option>This Year</option>
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground group-hover:text-primary transition-colors">
-              <TrendingUp className="w-4 h-4 rotate-90" />
-            </div>
-          </div>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }

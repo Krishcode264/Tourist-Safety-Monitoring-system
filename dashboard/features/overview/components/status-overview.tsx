@@ -1,76 +1,81 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
 import { Activity, MapPin, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { useZoneStatus } from "../hooks/use-overview"
+import { cn } from "@/lib/utils"
+
+const iconMap: Record<string, React.ElementType> = {
+  "All Clear":    CheckCircle2,
+  "Under Watch":  Activity,
+  "Active Alert": AlertCircle,
+  "Critical":     MapPin,
+}
+
+const colorMap: Record<string, { icon: string; bar: string; num: string }> = {
+  "All Clear":    { icon: "text-emerald-600 dark:text-emerald-400", bar: "bg-emerald-500", num: "text-emerald-700 dark:text-emerald-400" },
+  "Under Watch":  { icon: "text-blue-600 dark:text-blue-400",       bar: "bg-blue-500",   num: "text-blue-700 dark:text-blue-400" },
+  "Active Alert": { icon: "text-amber-600 dark:text-amber-400",     bar: "bg-amber-500",  num: "text-amber-700 dark:text-amber-400" },
+  "Critical":     { icon: "text-red-600 dark:text-red-400",         bar: "bg-red-500",    num: "text-red-700 dark:text-red-400" },
+}
 
 export function StatusOverview() {
-  const { data: zoneData, isLoading } = useZoneStatus();
+  const { data: zoneData, isLoading } = useZoneStatus()
 
   if (isLoading) {
     return (
-      <Card className="bg-card border-border p-6 flex items-center justify-center min-h-[300px]">
+      <div className="bg-card border border-border rounded-xl flex items-center justify-center min-h-[300px]">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </Card>
-    );
+      </div>
+    )
   }
 
-  const iconMap: Record<string, any> = {
-    "All Clear": CheckCircle2,
-    "Under Watch": Activity,
-    "Active Alert": AlertCircle,
-    "Critical": MapPin,
-  };
-
-  const colorMap: Record<string, string> = {
-    "All Clear": "text-green-400",
-    "Under Watch": "text-blue-400",
-    "Active Alert": "text-yellow-400",
-    "Critical": "text-red-400",
-  };
-
-  const bgMap: Record<string, string> = {
-    "All Clear": "bg-green-500/10",
-    "Under Watch": "bg-blue-500/10",
-    "Active Alert": "bg-yellow-500/10",
-    "Critical": "bg-red-500/10",
-  };
-
-  const statuses = (zoneData || []).map((item: any) => ({
-    label: item.label,
-    value: item.value,
-    icon: iconMap[item.label] || AlertCircle,
-    color: colorMap[item.label] || "text-slate-400",
-    bgColor: bgMap[item.label] || "bg-slate-500/10",
-  }));
-
+  const total = (zoneData || []).reduce((sum: number, z: any) => sum + (z.value || 0), 0)
 
   return (
-    <Card className="bg-card border-border p-6">
-      <h2 className="text-xl font-bold text-foreground mb-4">Zone Status</h2>
+    <div className="bg-card border border-border rounded-xl flex flex-col">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-border">
+        <h2 className="text-[15px] font-semibold text-foreground">Zone Status</h2>
+        <p className="text-[12px] text-muted-foreground mt-0.5">Geographic monitoring breakdown</p>
+      </div>
 
-      <div className="space-y-3">
-        {statuses.map((status: any, idx: number) => {
-          const Icon = status.icon
+      {/* Zones */}
+      <div className="px-5 py-4 space-y-4 flex-1">
+        {(zoneData || []).map((item: any) => {
+          const Icon  = iconMap[item.label] ?? AlertCircle
+          const c     = colorMap[item.label] ?? { icon: "text-slate-500", bar: "bg-slate-400", num: "text-slate-600" }
+          const pct   = total > 0 ? Math.round((item.value / total) * 100) : 0
+
           return (
-            <div key={idx} className="p-3 rounded-lg bg-secondary/50 border border-border/50">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg ${status.bgColor} flex items-center justify-center`}>
-                  <Icon className={`w-5 h-5 ${status.color}`} />
+            <div key={item.label} className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon className={cn("w-4 h-4 shrink-0", c.icon)} strokeWidth={1.75} />
+                  <span className="text-[13px] font-medium text-foreground">{item.label}</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">{status.label}</p>
-                  <p className="text-lg font-bold text-foreground">{status.value}</p>
-                </div>
+                <span className={cn("text-[13px] font-semibold tabular", c.num)}>
+                  {item.value}
+                  <span className="text-muted-foreground/50 font-normal text-[11px] ml-1">zones</span>
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn("h-full rounded-full transition-all duration-700", c.bar)}
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
           )
         })}
       </div>
 
-      <button className="w-full mt-4 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium">
-        Generate Report
-      </button>
-    </Card>
+      {/* Action */}
+      <div className="px-5 pb-5">
+        <button className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 active:bg-primary/80 transition-colors">
+          Generate Report
+        </button>
+      </div>
+    </div>
   )
 }

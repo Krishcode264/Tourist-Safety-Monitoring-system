@@ -43,9 +43,9 @@ export function PanicButton({ isInline = false }: PanicButtonProps) {
 
             const touristId = user?.id || 'tourist-demo-001';
             await axios.post(`${BACKEND_URL}/api/incidents`, {
-                type: 'HARASSMENT',
+                type: 'SOS',
                 severity: 'CRITICAL',
-                description: `EMERGENCY SOS ALERT triggered by ${user?.fullName || 'Tourist'}`,
+                description: `🆘 SOS EMERGENCY triggered by ${user?.fullName || 'Tourist'}. Immediate assistance required.`,
                 latitude: lat,
                 longitude: lng,
                 touristId,

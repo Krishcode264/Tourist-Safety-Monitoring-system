@@ -1,69 +1,72 @@
 "use client"
 
-import { Bell, Search, User, Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Search, Bell, Wifi, WifiOff } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
 import { LiveNotifications } from "./live-notifications"
-import { useAuth } from "@/components/providers/auth-provider"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 
-interface TopBarProps {
-  userRole?: string
+const routeTitles: Record<string, { label: string; description: string }> = {
+  "/":                { label: "Overview",           description: "Real-time operational summary" },
+  "/map":             { label: "Live Tracking",      description: "Tourist location & zone monitoring" },
+  "/incidents":       { label: "Incidents",          description: "Active and historical incident log" },
+  "/id-verification": { label: "Digital ID",         description: "Tourist identity verification" },
+  "/analytics":       { label: "Analytics",          description: "Performance metrics & trends" },
+  "/users":           { label: "Team",               description: "Officers and dispatch roster" },
+  "/chat":            { label: "Communications",     description: "Incident messaging channel" },
 }
 
-export function TopBar({ userRole }: TopBarProps = {}) {
-  const { user, logout } = useAuth()
+function usePageMeta() {
+  const pathname = usePathname()
+  // Longest matching prefix wins
+  let best = { label: "SafetyHub", description: "" }
+  let bestLen = -1
+  for (const [route, meta] of Object.entries(routeTitles)) {
+    if (pathname.startsWith(route) && route.length > bestLen) {
+      best = meta
+      bestLen = route.length
+    }
+  }
+  return best
+}
+
+export function TopBar() {
+  const meta = usePageMeta()
 
   return (
-    <header className="h-16 border-b border-border bg-background px-6 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="lg:hidden">
-          <Menu className="w-5 h-5" />
-        </Button>
-        <div className="relative w-64 hidden md:block">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input type="search" placeholder="Search incidents, officers..." className="pl-9 bg-muted/50 border-input" />
-        </div>
+    <header className="h-[65px] border-b border-border bg-card px-6 flex items-center justify-between shrink-0">
+      {/* Page identity */}
+      <div className="flex items-baseline gap-3 min-w-0">
+        <h1 className="text-[17px] font-semibold text-foreground leading-tight truncate">
+          {meta.label}
+        </h1>
+        {meta.description && (
+          <span className="hidden sm:inline text-sm text-muted-foreground truncate">
+            {meta.description}
+          </span>
+        )}
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2 hidden sm:flex">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span>System Operational</span>
+      {/* Right controls */}
+      <div className="flex items-center gap-2 shrink-0 ml-4">
+        {/* System status pill */}
+        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-background text-xs text-muted-foreground">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Operational</span>
         </div>
 
+        {/* Global search */}
+        <div className="relative hidden lg:block">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            type="search"
+            placeholder="Search incidents…"
+            className="pl-8 h-8 w-52 text-sm bg-background"
+          />
+        </div>
+
+        {/* Live notifications */}
         <LiveNotifications />
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2 pl-2 pr-4">
-              <User className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">{user?.fullName || user?.username || 'Loading...'}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive cursor-pointer" onClick={logout}>Logout</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <Avatar>
-          <AvatarImage src="/placeholder-user.jpg" />
-          <AvatarFallback>JO</AvatarFallback>
-        </Avatar>
       </div>
     </header>
   )

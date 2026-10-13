@@ -1,90 +1,134 @@
 "use client"
 
 import { useRecentIncidentsOverview } from "../hooks/use-overview"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ChevronRight, Loader2, AlertCircle } from "lucide-react"
+import { ChevronRight, Loader2, AlertCircle, AlertTriangle, Info, CheckCircle2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
+
+function SeverityDot({ severity }: { severity: string }) {
+  const map: Record<string, string> = {
+    critical: "bg-red-500",
+    high:     "bg-orange-500",
+    warning:  "bg-amber-500",
+    medium:   "bg-amber-500",
+    low:      "bg-emerald-500",
+    info:     "bg-blue-500",
+  }
+  return (
+    <span
+      className={cn(
+        "inline-block w-1.5 h-1.5 rounded-full shrink-0 mt-[6px]",
+        map[severity?.toLowerCase()] ?? "bg-slate-400"
+      )}
+    />
+  )
+}
+
+function SeverityBadge({ severity }: { severity: string }) {
+  const map: Record<string, string> = {
+    critical: "badge-critical border",
+    high:     "bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50",
+    warning:  "badge-warning border",
+    medium:   "badge-warning border",
+    low:      "badge-success border",
+    info:     "badge-info border",
+  }
+  return (
+    <span
+      className={cn(
+        "inline-block text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded",
+        map[severity?.toLowerCase()] ?? "bg-muted text-muted-foreground"
+      )}
+    >
+      {severity}
+    </span>
+  )
+}
+
+function StatusChip({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    open:       "text-red-600 dark:text-red-400",
+    active:     "text-red-600 dark:text-red-400",
+    responding: "text-amber-600 dark:text-amber-400",
+    resolved:   "text-emerald-600 dark:text-emerald-400",
+  }
+  return (
+    <span className={cn("text-[11px] font-medium capitalize", map[status?.toLowerCase()] ?? "text-muted-foreground")}>
+      {status}
+    </span>
+  )
+}
 
 export function RecentIncidents() {
-  const router = useRouter();
-  const { data: incidents, isLoading, error } = useRecentIncidentsOverview();
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity?.toLowerCase()) {
-      case "critical":
-        return "bg-destructive/20 text-destructive border-destructive/50"
-      case "warning":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
-      default:
-        return "bg-green-500/20 text-green-400 border-green-500/50"
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "open":
-      case "active":
-        return "text-destructive"
-      case "responding":
-        return "text-yellow-400"
-      case "resolved":
-        return "text-green-400"
-      default:
-        return "text-muted-foreground"
-    }
-  }
+  const router = useRouter()
+  const { data: incidents, isLoading, error } = useRecentIncidentsOverview()
 
   if (isLoading) {
     return (
-      <Card className="bg-card border-border p-6 flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </Card>
-    );
+      <div className="bg-card border border-border rounded-xl p-6 flex justify-center items-center h-64">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <Card className="bg-card border-border p-6 flex flex-col justify-center items-center h-64 text-destructive">
-        <AlertCircle className="w-8 h-8 mb-2" />
-        <p>Failed to load incidents</p>
-      </Card>
-    );
+      <div className="bg-card border border-border rounded-xl p-6 flex flex-col justify-center items-center h-64 gap-2 text-destructive">
+        <AlertCircle className="w-6 h-6" strokeWidth={1.5} />
+        <p className="text-sm">Failed to load incidents</p>
+      </div>
+    )
   }
 
   return (
-    <Card className="bg-card border-border p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-foreground">Recent Incidents</h2>
-        <button onClick={()=>{router.push("/incidents") }} className="text-accent text-sm font-medium hover:underline">View All</button>
+    <div className="bg-card border border-border rounded-xl flex flex-col">
+      {/* Header */}
+      <div className="px-5 py-4 flex items-center justify-between border-b border-border">
+        <div>
+          <h2 className="text-[15px] font-semibold text-foreground">Recent Incidents</h2>
+          <p className="text-[12px] text-muted-foreground mt-0.5">Latest activity across all zones</p>
+        </div>
+        <button
+          onClick={() => router.push("/incidents")}
+          className="text-[13px] text-primary font-medium hover:text-primary/80 transition-colors"
+        >
+          View all →
+        </button>
       </div>
 
-      <div className="space-y-3">
-        {incidents?.map((incident: any) => (
-          <div
+      {/* Incident rows */}
+      <div className="divide-y divide-border">
+        {(incidents ?? []).map((incident: any) => (
+          <button
             key={incident.id}
-            className="p-4 rounded-lg bg-secondary/50 hover:bg-secondary/80 transition-colors cursor-pointer border border-border/50"
+            type="button"
+            className="w-full flex items-start gap-3 px-5 py-4 hover:bg-muted/40 transition-colors text-left"
             onClick={() => router.push(`/incidents/${incident.id}`)}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-foreground">{incident.type}</h3>
-                  <Badge variant="outline" className={`text-xs ${getSeverityColor(incident.severity)}`}>
-                    {incident.severity}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">{incident.locationMsg}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{incident.timeSinceReported} ago</span>
-                  <span className={`text-xs font-medium ${getStatusColor(incident.status)}`}>{incident.status}</span>
-                </div>
+            <SeverityDot severity={incident.severity} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[14px] font-medium text-foreground truncate">{incident.type}</span>
+                <SeverityBadge severity={incident.severity} />
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
+              <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{incident.locationMsg}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[11px] text-muted-foreground">{incident.timeSinceReported} ago</span>
+                <span className="text-muted-foreground/40">·</span>
+                <StatusChip status={incident.status} />
+              </div>
             </div>
-          </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground/50 shrink-0 mt-1" strokeWidth={2} />
+          </button>
         ))}
+
+        {(!incidents || incidents.length === 0) && (
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500" strokeWidth={1.5} />
+            <p className="text-sm text-muted-foreground">No recent incidents</p>
+          </div>
+        )}
       </div>
-    </Card>
+    </div>
   )
 }
