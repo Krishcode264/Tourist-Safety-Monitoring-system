@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { IncidentService } from './incident.service';
+import { runAIAssignmentAgent } from './ai-assignment.service';
 
 const router = Router();
 const incidentService = new IncidentService();
@@ -94,6 +95,37 @@ router.post('/:id/assign', async (req: Request, res: Response) => {
         res.json({ success: true, data });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to assign officers' });
+    }
+});
+
+// POST /api/incidents/:id/ai-assign  — AI-powered automatic officer assignment
+router.post('/:id/ai-assign', async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id as string;
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(503).json({
+                success: false,
+                message: 'AI assignment is not configured. GEMINI_API_KEY is missing.'
+            });
+        }
+
+        console.log(`🤖 AI auto-assignment triggered for incident ${id}`);
+        const result = await runAIAssignmentAgent(id);
+
+        res.json({
+            success: true,
+            data: {
+                assignedOfficerIds: result.assignedOfficerIds,
+                reasoning: result.reasoning,
+                message: result.assignedOfficerIds.length > 0
+                    ? `AI assigned ${result.assignedOfficerIds.length} officer(s) successfully`
+                    : 'AI found no available officers to assign'
+            }
+        });
+    } catch (error: any) {
+        console.error('AI assignment error:', error?.message || error);
+        res.status(500).json({ success: false, message: 'AI assignment failed. Please assign manually.' });
     }
 });
 

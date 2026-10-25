@@ -51,6 +51,17 @@ export const useAssignOfficers = () => {
     });
 };
 
+export const useAIAssignOfficers = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => incidentService.aiAssignOfficers(id),
+        onSuccess: (_data: any, incidentId: string) => {
+            queryClient.invalidateQueries({ queryKey: ['incidents-list'] });
+            queryClient.invalidateQueries({ queryKey: ['incident-detail', incidentId] });
+        },
+    });
+};
+
 export const useIncidentMessages = (id: string) => {
     return useQuery({
         queryKey: ['incident-messages', id],

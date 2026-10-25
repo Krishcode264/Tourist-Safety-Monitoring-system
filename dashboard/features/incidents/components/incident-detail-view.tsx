@@ -1,10 +1,10 @@
 "use client"
 
-import { useIncidentDetail, useUpdateIncidentStatus, useUpdateIncident, useAssignOfficers } from "../hooks/use-incidents"
+import { useIncidentDetail, useUpdateIncidentStatus, useUpdateIncident, useAssignOfficers, useAIAssignOfficers } from "../hooks/use-incidents"
 import { useUsers } from "../../users/hooks/use-users"
 import { useAuth } from "@/components/providers/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Loader2, AlertCircle, MapPin, Clock, Edit2, Users, AlertTriangle, ArrowLeft, MessageSquare, CheckCircle2, Radio } from "lucide-react"
+import { Loader2, AlertCircle, MapPin, Clock, Edit2, Users, AlertTriangle, ArrowLeft, MessageSquare, CheckCircle2, Radio, Sparkles, Bot } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -47,6 +47,8 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [selectedOfficerIds, setSelectedOfficerIds] = useState<string[]>([])
+  const [aiReasoning, setAiReasoning] = useState<string | null>(null)
+  const [aiMessage, setAiMessage] = useState<string | null>(null)
 
   const { data: incident, isLoading, error } = useIncidentDetail(id)
   const { data: users } = useUsers()
@@ -55,6 +57,7 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
   const updateStatusMutation = useUpdateIncidentStatus()
   const updateIncidentMutation = useUpdateIncident()
   const assignOfficersMutation = useAssignOfficers()
+  const aiAssignMutation = useAIAssignOfficers()
 
   const handleUpdateDetails = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -74,6 +77,19 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
     await assignOfficersMutation.mutateAsync({ id: incident.id, officerIds: selectedOfficerIds })
     setIsAssignModalOpen(false)
     setSelectedOfficerIds([])
+  }
+
+  const handleAIAssign = async () => {
+    if (!incident) return
+    setAiReasoning(null)
+    setAiMessage(null)
+    try {
+      const result = await aiAssignMutation.mutateAsync(incident.id)
+      setAiReasoning(result.reasoning)
+      setAiMessage(result.message)
+    } catch {
+      setAiMessage('AI assignment failed. Please try manually.')
+    }
   }
 
   if (isLoading) {
@@ -189,7 +205,7 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
             </Dialog>
 
             {/* Assign dialog */}
-            <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
+            <Dialog open={isAssignModalOpen} onOpenChange={(open) => { setIsAssignModalOpen(open); if (!open) { setAiReasoning(null); setAiMessage(null); } }}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline" className="gap-1.5 text-sm">
                   <Users className="w-3.5 h-3.5" />
@@ -200,7 +216,61 @@ export function IncidentDetailView({ id }: IncidentDetailViewProps) {
                 <DialogHeader>
                   <DialogTitle>Assign Officers</DialogTitle>
                 </DialogHeader>
-                <div className="py-3 space-y-1 max-h-72 overflow-y-auto">
+
+                {/* ── AI Auto-Assign section ── */}
+                <div className="rounded-xl border border-violet-200 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-950/20 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                    <span className="text-[13px] font-semibold text-violet-700 dark:text-violet-300">AI Auto-Assignment</span>
+                  </div>
+                  <p className="text-[12px] text-violet-600/80 dark:text-violet-400/70">
+                    Let the AI agent analyse the incident and automatically pick the best available officers.
+                  </p>
+
+                  {/* AI result feedback */}
+                  {aiMessage && (
+                    <div className={cn(
+                      "text-[12px] font-medium px-3 py-2 rounded-lg border",
+                      aiReasoning
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30"
+                        : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30"
+                    )}>
+                      {aiMessage}
+                    </div>
+                  )}
+                  {aiReasoning && (
+                    <details className="cursor-pointer">
+                      <summary className="text-[11px] text-violet-600 dark:text-violet-400 font-medium select-none hover:underline">
+                        View AI reasoning
+                      </summary>
+                      <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed bg-muted/40 px-3 py-2 rounded-lg border border-border">
+                        {aiReasoning}
+                      </p>
+                    </details>
+                  )}
+
+                  <Button
+                    className="w-full gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm"
+                    size="sm"
+                    onClick={handleAIAssign}
+                    disabled={aiAssignMutation.isPending}
+                  >
+                    {aiAssignMutation.isPending ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /> AI is thinking…</>
+                    ) : (
+                      <><Sparkles className="w-3.5 h-3.5" /> Auto-Assign with AI</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* ── Divider ── */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[11px] text-muted-foreground font-medium">or assign manually</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                <div className="space-y-1 max-h-60 overflow-y-auto">
                   {officers.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-6">No available officers to assign.</p>
                   ) : officers.map((officer: any) => (

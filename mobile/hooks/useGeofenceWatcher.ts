@@ -169,7 +169,7 @@ export function useGeofenceWatcher() {
 
         // Also sync to atom so Alerts screen can show "currently inside" badges
         setActiveFenceIds(new Set(nowInside));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // ← Empty deps: function is stable, reads everything through refs
 
     // ── Mount ────────────────────────────────────────────────────────────────
@@ -191,7 +191,7 @@ export function useGeofenceWatcher() {
 
             // 4. Recurring timers
             locationTimer = setInterval(checkLocation, POLL_INTERVAL_MS);
-            fenceTimer    = setInterval(fetchFences,   FENCE_REFRESH_MS);
+            fenceTimer = setInterval(fetchFences, FENCE_REFRESH_MS);
         })();
 
         return () => {
@@ -199,6 +199,6 @@ export function useGeofenceWatcher() {
             clearInterval(fenceTimer);
             soundRef.current?.unloadAsync();
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Mount once — all mutable state lives in refs
 }
