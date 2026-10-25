@@ -91,7 +91,7 @@ export default function OnboardingScreen() {
                 setStep(4); // Success step
             }
         } catch (error: any) {
-            console.error('Registration failed:', error);
+            console.warn('Registration failed:', error?.response?.data?.message || error?.message);
             const msg = error.response?.data?.message || 'Failed to create account. Please try again.';
             Alert.alert('Registration Error', msg);
         } finally {
@@ -295,6 +295,17 @@ export default function OnboardingScreen() {
                                 )}
                             </TouchableOpacity>
                         </View>
+                    )}
+
+                    {step < 4 && (
+                        <TouchableOpacity
+                            onPress={() => router.push('/auth/login')}
+                            className="items-center mt-6 mb-8 py-2"
+                        >
+                            <Text className="text-slate-500 text-base">
+                                Already registered? <Text className="text-emerald-600 font-bold">Log in here</Text>
+                            </Text>
+                        </TouchableOpacity>
                     )}
                 </ScrollView>
             </SafeAreaView>

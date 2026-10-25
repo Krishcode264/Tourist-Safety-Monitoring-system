@@ -68,17 +68,32 @@ export class AuthService {
     }) {
         const hashedPassword = await bcrypt.hash(data.passwordString, 10);
         
-        const tourist = await prisma.tourist.create({
-            data: {
-                email: data.email,
-                password: hashedPassword,
-                fullName: data.fullName,
-                phoneNumber: data.phoneNumber,
-                nationality: data.nationality,
-                tripDuration: data.tripDuration ? parseInt(data.tripDuration) : undefined,
-                citiesExploring: data.citiesExploring
+        let tourist;
+        try {
+            tourist = await prisma.tourist.create({
+                data: {
+                    email: data.email,
+                    password: hashedPassword,
+                    fullName: data.fullName,
+                    phoneNumber: data.phoneNumber,
+                    nationality: data.nationality,
+                    tripDuration: data.tripDuration ? parseInt(data.tripDuration) : undefined,
+                    citiesExploring: data.citiesExploring
+                }
+            });
+        } catch (error: any) {
+            if (error.code === 'P2002') {
+                const target = error.meta?.target;
+                if (Array.isArray(target) && target.includes('phoneNumber')) {
+                    throw new Error('This phone number is already registered. Please log in or use another number.');
+                }
+                if (Array.isArray(target) && target.includes('email')) {
+                    throw new Error('This email is already registered. Please log in or use another email.');
+                }
+                throw new Error('An account with this email or phone number already exists.');
             }
-        });
+            throw error;
+        }
 
         const token = jwt.sign({ 
             id: tourist.id, 
